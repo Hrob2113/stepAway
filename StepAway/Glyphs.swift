@@ -77,7 +77,7 @@ struct EyeGlyph: View {
         }
     }
 
-    private func openness(at t: TimeInterval) -> Double {
+    func openness(at t: TimeInterval) -> Double {
         guard animated else { return 1 }
         let period = 5.2
         let span = 0.38
@@ -108,21 +108,17 @@ struct EyeGlyph: View {
         }
 
         let halfH = h * 0.47 * open
-        let lid = { (u: CGFloat) -> CGFloat in
-            let s = 1 - u * u
-            return s <= 0 ? 0 : halfH * CGFloat(pow(Double(s), 0.85))
-        }
 
         let outline = Path { path in
             let steps = 72
             for i in 0...steps {
                 let u = CGFloat(i) / CGFloat(steps) * 2 - 1
-                let point = CGPoint(x: cx + u * halfW, y: cy - lid(u))
+                let point = CGPoint(x: cx + u * halfW, y: cy - halfH * Self.lidRatio(u))
                 if i == 0 { path.move(to: point) } else { path.addLine(to: point) }
             }
             for i in stride(from: steps, through: 0, by: -1) {
                 let u = CGFloat(i) / CGFloat(steps) * 2 - 1
-                path.addLine(to: CGPoint(x: cx + u * halfW, y: cy + lid(u)))
+                path.addLine(to: CGPoint(x: cx + u * halfW, y: cy + halfH * Self.lidRatio(u)))
             }
             path.closeSubpath()
         }
@@ -146,23 +142,23 @@ struct EyeGlyph: View {
 
         var shadow = Path()
         var halo = Path()
+        let irisArea = Double(irisR * irisR)
+        let irisReach = 1.45 * 1.45
 
         for speck in Self.specks.prefix(count) {
             let px = speck.x * w
             let py = speck.y * h
-            let u = (px - cx) / halfW
-            guard abs(u) < 1.4 else { continue }
+            let ratio = Self.lidRatio((px - cx) / halfW)
+            guard ratio > 0.0001 else { continue }
 
-            let edge = lid(u)
-            guard edge > 0.001 else { continue }
-            let d = Double(abs(py - cy) / edge)
+            let d = Double(abs(py - cy) / (halfH * ratio))
 
             if d <= 1 {
-                let toIris = Double(hypot(px - ix, py - iy) / irisR)
-                let ramp = (1 - Double(speck.x)) * 0.42 + Double(speck.y) * 0.58
-                let chance = toIris < 1.45
-                    ? 1 - smooth((toIris - 0.66) / 0.62)
-                    : 0.58 * pow(d, 3.0) + 0.46 * ramp - 0.21
+                let dx = Double(px - ix), dy = Double(py - iy)
+                let spread = (dx * dx + dy * dy) / irisArea
+                let chance = spread < irisReach
+                    ? 1 - smooth((spread.squareRoot() - 0.66) / 0.62)
+                    : 0.58 * d * d * d + 0.46 * speck.ramp - 0.21
                 if speck.roll < chance {
                     shadow.addEllipse(in: Self.dot(px, py, unit * speck.scale))
                 }
@@ -186,6 +182,18 @@ struct EyeGlyph: View {
         let y: CGFloat
         let roll: Double
         let scale: CGFloat
+        let ramp: Double
+    }
+
+    static let lidProfile: [CGFloat] = (0...256).map { step in
+        let u = Double(step) / 128 - 1
+        let span = 1 - u * u
+        return span <= 0 ? 0 : CGFloat(pow(span, 0.85))
+    }
+
+    static func lidRatio(_ u: CGFloat) -> CGFloat {
+        guard u > -1, u < 1 else { return 0 }
+        return lidProfile[Int(((u + 1) * 128).rounded())]
     }
 
     private static let specks: [Speck] = {
@@ -197,7 +205,12 @@ struct EyeGlyph: View {
             return Double(seed >> 11) * (1.0 / 9007199254740992.0)
         }
         return (0..<5600).map { _ in
-            Speck(x: CGFloat(next()), y: CGFloat(next()), roll: next(), scale: 0.5 + CGFloat(next()))
+            let x = next(), y = next()
+            return Speck(
+                x: CGFloat(x), y: CGFloat(y),
+                roll: next(), scale: 0.5 + CGFloat(next()),
+                ramp: (1 - x) * 0.42 + y * 0.58
+            )
         }
     }()
 }

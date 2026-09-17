@@ -22,7 +22,6 @@ enum Theme {
     )
 
     enum Radius {
-        static let pill: CGFloat = 999
         static let lg: CGFloat = 24
         static let xl: CGFloat = 36
     }
@@ -36,32 +35,28 @@ enum Theme {
 
     // MARK: - Type
 
-    enum Cut {
-        case bold, heavy, black
-
-        var face: String {
-            switch self {
-            case .bold:  "BarlowCondensed-Bold"
-            case .heavy: "BarlowCondensed-ExtraBold"
-            case .black: "BarlowCondensed-Black"
-            }
-        }
+    enum Face: String, CaseIterable {
+        case black = "BarlowCondensed-Black"
+        case heavy = "BarlowCondensed-ExtraBold"
+        case voice = "CrimsonPro-LightItalic"
+        case label = "IBMPlexMono-Regular"
+        case labelStrong = "IBMPlexMono-Medium"
     }
 
-    static func display(_ size: CGFloat, _ cut: Cut = .black) -> Font {
-        .custom(cut.face, size: size)
+    static func display(_ size: CGFloat, _ face: Face = .black) -> Font {
+        .custom(face.rawValue, size: size)
     }
 
-    static func voice(_ size: CGFloat, italic: Bool = true) -> Font {
-        .custom(italic ? "CrimsonPro-LightItalic" : "CrimsonPro-Light", size: size)
+    static func voice(_ size: CGFloat) -> Font {
+        .custom(Face.voice.rawValue, size: size)
     }
 
     static func label(_ size: CGFloat, emphasis: Bool = false) -> Font {
-        .custom(emphasis ? "IBMPlexMono-Medium" : "IBMPlexMono-Regular", size: size)
+        .custom((emphasis ? Face.labelStrong : Face.label).rawValue, size: size)
     }
 
     static func counter(_ size: CGFloat) -> Font {
-        .custom("IBMPlexMono-Regular", size: size)
+        .custom(Face.label.rawValue, size: size)
     }
 
     static func registerBundledFonts() {

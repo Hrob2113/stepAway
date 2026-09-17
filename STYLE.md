@@ -83,8 +83,20 @@ below is restated as a literal in a view.
 - One type per file, named after the type
 - Imports sorted, and only what the file uses
 
+## Tests
+
+`swift test` runs the suite in `Tests/StepAwayCoreTests`. The package compiles the same
+sources the app target does, minus `StepAwayApp.swift`, so a test failure is a real one.
+
+- Cover what fails silently: timer cadence, preset behaviour, duration copy, lid geometry,
+  and that every face `Theme.Face` names is bundled and resolves rather than falling back
+  to Helvetica.
+- Name a test after the behaviour it protects, not the method it calls.
+- Anything drawn is checked by rendering it, not by asserting on pixels.
+- Run the suite before committing; it takes well under a second.
+
 ## Before committing
 
-- Builds clean with no warnings
+- Builds clean with no warnings, and `swift test` passes
 - No commented-out code
 - No debugging leftovers (`print`, temporary flags)

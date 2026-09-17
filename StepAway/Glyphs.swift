@@ -35,8 +35,8 @@ private final class GazeTracker {
     }
 }
 
-struct EyesGlyph: View {
-    var tint: Color = Theme.Palette.chalk
+struct EyeGlyph: View {
+    var tint: Color = Theme.Palette.ink
     var animated = true
 
     @State private var window: NSWindow?
@@ -70,52 +70,129 @@ struct EyesGlyph: View {
         )
     }
 
+    private func openness(at t: TimeInterval) -> Double {
+        guard animated else { return 1 }
+        let period = 5.2
+        let span = 0.38
+        let cycle = t.truncatingRemainder(dividingBy: period)
+        guard cycle < span else { return 1 }
+        let u = cycle / span
+        let blink = u < 0.38 ? smooth(u / 0.38) : smooth(1 - (u - 0.38) / 0.62)
+        return 1 - blink * 0.96
+    }
+
     private func draw(in ctx: GraphicsContext, size: CGSize, t: TimeInterval, look: CGPoint) {
         let w = size.width, h = size.height
-        let stroke = max(1.5, w * 0.035)
+        guard w > 2, h > 2 else { return }
 
-        let period = 5.2
-        let cycle = t.truncatingRemainder(dividingBy: period)
-        let span = 0.38
-        var blink = 0.0
-        if animated, cycle < span {
-            let u = cycle / span
-            blink = u < 0.38 ? smooth(u / 0.38) : smooth(1 - (u - 0.38) / 0.62)
+        let cx = w / 2, cy = h / 2
+        let halfW = w * 0.48
+        let open = openness(at: t)
+
+        guard open > 0.07 else {
+            var lash = Path()
+            lash.move(to: CGPoint(x: cx - halfW, y: cy))
+            lash.addLine(to: CGPoint(x: cx + halfW, y: cy))
+            ctx.stroke(
+                lash, with: .color(tint),
+                style: StrokeStyle(lineWidth: max(1.4, h * 0.05), lineCap: .round)
+            )
+            return
         }
-        let openness = 1 - blink * 0.96
 
-        let eyeW = w * 0.36
-        let eyeH = h * 0.145 * openness
-        let centres = [CGPoint(x: w * 0.26, y: h * 0.5), CGPoint(x: w * 0.74, y: h * 0.5)]
-
-        for c in centres {
-            let lid = Path { p in
-                p.move(to: CGPoint(x: c.x - eyeW / 2, y: c.y))
-                p.addQuadCurve(
-                    to: CGPoint(x: c.x + eyeW / 2, y: c.y),
-                    control: CGPoint(x: c.x, y: c.y - eyeH * 1.85)
-                )
-                p.addQuadCurve(
-                    to: CGPoint(x: c.x - eyeW / 2, y: c.y),
-                    control: CGPoint(x: c.x, y: c.y + eyeH * 1.85)
-                )
-                p.closeSubpath()
-            }
-
-            if openness > 0.22 {
-                var inner = ctx
-                inner.clip(to: lid)
-                let r = min(eyeW * 0.22, h * 0.085)
-                let ix = c.x + look.x * eyeW * 0.26
-                let iy = c.y - look.y * h * 0.055
-                inner.fill(
-                    Path(ellipseIn: CGRect(x: ix - r, y: iy - r, width: r * 2, height: r * 2)),
-                    with: .color(tint.opacity(0.92))
-                )
-            }
-            ctx.stroke(lid, with: .color(tint), lineWidth: stroke)
+        let halfH = h * 0.47 * open
+        let lid = { (u: CGFloat) -> CGFloat in
+            let s = 1 - u * u
+            return s <= 0 ? 0 : halfH * CGFloat(pow(Double(s), 0.85))
         }
+
+        let outline = Path { path in
+            let steps = 72
+            for i in 0...steps {
+                let u = CGFloat(i) / CGFloat(steps) * 2 - 1
+                let point = CGPoint(x: cx + u * halfW, y: cy - lid(u))
+                if i == 0 { path.move(to: point) } else { path.addLine(to: point) }
+            }
+            for i in stride(from: steps, through: 0, by: -1) {
+                let u = CGFloat(i) / CGFloat(steps) * 2 - 1
+                path.addLine(to: CGPoint(x: cx + u * halfW, y: cy + lid(u)))
+            }
+            path.closeSubpath()
+        }
+
+        let irisR = max(1, min(halfH * 0.74, w * 0.145))
+        let ix = cx + look.x * (halfW - irisR * 1.35) * 0.55
+        let iy = cy - look.y * max(0, halfH - irisR) * 0.7
+
+        var body = ctx
+        body.clip(to: outline)
+        body.fill(outline, with: .color(tint))
+
+        let core = irisR * 0.72
+        body.fill(
+            Path(ellipseIn: CGRect(x: ix - core, y: iy - core, width: core * 2, height: core * 2)),
+            with: .color(.black.opacity(0.95))
+        )
+
+        let unit = max(0.55, min(w, h) * 0.011)
+        let count = max(140, min(Self.specks.count, Int(w * h * 0.55)))
+
+        var shadow = Path()
+        var halo = Path()
+
+        for speck in Self.specks.prefix(count) {
+            let px = speck.x * w
+            let py = speck.y * h
+            let u = (px - cx) / halfW
+            guard abs(u) < 1.4 else { continue }
+
+            let edge = lid(u)
+            guard edge > 0.001 else { continue }
+            let d = Double(abs(py - cy) / edge)
+
+            if d <= 1 {
+                let toIris = Double(hypot(px - ix, py - iy) / irisR)
+                let ramp = (1 - Double(speck.x)) * 0.42 + Double(speck.y) * 0.58
+                let chance = toIris < 1.45
+                    ? 1 - smooth((toIris - 0.66) / 0.62)
+                    : 0.58 * pow(d, 3.0) + 0.46 * ramp - 0.21
+                if speck.roll < chance {
+                    shadow.addEllipse(in: Self.dot(px, py, unit * speck.scale))
+                }
+            } else if d < 1.45 {
+                if speck.roll < 0.46 * (1 - (d - 1) / 0.45) {
+                    halo.addEllipse(in: Self.dot(px, py, unit * speck.scale * 0.8))
+                }
+            }
+        }
+
+        body.fill(shadow, with: .color(.black.opacity(0.94)))
+        ctx.fill(halo, with: .color(tint))
     }
+
+    private static func dot(_ x: CGFloat, _ y: CGFloat, _ side: CGFloat) -> CGRect {
+        CGRect(x: x - side / 2, y: y - side / 2, width: side, height: side)
+    }
+
+    private struct Speck {
+        let x: CGFloat
+        let y: CGFloat
+        let roll: Double
+        let scale: CGFloat
+    }
+
+    private static let specks: [Speck] = {
+        var seed: UInt64 = 0xD1B54A32D192ED03
+        func next() -> Double {
+            seed ^= seed << 13
+            seed ^= seed >> 7
+            seed ^= seed << 17
+            return Double(seed >> 11) * (1.0 / 9007199254740992.0)
+        }
+        return (0..<5600).map { _ in
+            Speck(x: CGFloat(next()), y: CGFloat(next()), roll: next(), scale: 0.5 + CGFloat(next()))
+        }
+    }()
 }
 
 struct StretchGlyph: View {

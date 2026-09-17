@@ -3,12 +3,28 @@ import SwiftUI
 
 enum Theme {
     enum Palette {
-        static let glass = Color(white: 0.24)
+        static let ink      = Color(.sRGB, red: 0.929, green: 0.902, blue: 0.855)
+        static let chalk    = ink.opacity(0.86)
+        static let inkMuted = ink.opacity(0.52)
+        static let hairline = ink.opacity(0.26)
+        static let border   = ink.opacity(0.09)
+        static let surface  = Color.white.opacity(0.04)
+        static let ember    = Color(.sRGB, red: 0.769, green: 0.071, blue: 0.031)
+        static let depth    = Color(.sRGB, red: 0.000, green: 0.235, blue: 0.322)
+        static let flame    = Color(.sRGB, red: 0.910, green: 0.376, blue: 0.122)
+        static let lagoon   = Color(.sRGB, red: 0.231, green: 0.545, blue: 0.639)
+    }
 
-        static let ink = Color(white: 0.97)
-        static let inkMuted = Color(white: 0.70)
-        static let chalk = Color(white: 0.90)
-        static let hairline = Color(white: 0.45)
+    static let signature = LinearGradient(
+        colors: [Palette.flame, Palette.lagoon],
+        startPoint: UnitPoint(x: 0, y: 0.46),
+        endPoint: UnitPoint(x: 1, y: 0.54)
+    )
+
+    enum Radius {
+        static let pill: CGFloat = 999
+        static let lg: CGFloat = 24
+        static let xl: CGFloat = 36
     }
 
     enum Motion {
@@ -18,12 +34,50 @@ enum Theme {
         static let breathe = Animation.easeInOut(duration: 4).repeatForever(autoreverses: true)
     }
 
-    static func rounded(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font {
-        .system(size: size, weight: weight, design: .rounded)
+    // MARK: - Type
+
+    enum Cut {
+        case bold, heavy, black
+
+        var face: String {
+            switch self {
+            case .bold:  "BarlowCondensed-Bold"
+            case .heavy: "BarlowCondensed-ExtraBold"
+            case .black: "BarlowCondensed-Black"
+            }
+        }
+    }
+
+    static func display(_ size: CGFloat, _ cut: Cut = .black) -> Font {
+        .custom(cut.face, size: size)
+    }
+
+    static func voice(_ size: CGFloat, italic: Bool = true) -> Font {
+        .custom(italic ? "CrimsonPro-LightItalic" : "CrimsonPro-Light", size: size)
+    }
+
+    static func label(_ size: CGFloat, emphasis: Bool = false) -> Font {
+        .custom(emphasis ? "IBMPlexMono-Medium" : "IBMPlexMono-Regular", size: size)
     }
 
     static func counter(_ size: CGFloat) -> Font {
-        .system(size: size, weight: .light, design: .rounded).monospacedDigit()
+        .custom("IBMPlexMono-Regular", size: size)
+    }
+
+    static func registerBundledFonts() {
+        let bundle = Bundle.main
+        let urls = (bundle.urls(forResourcesWithExtension: "ttf", subdirectory: "Fonts") ?? [])
+            + (bundle.urls(forResourcesWithExtension: "ttf", subdirectory: nil) ?? [])
+        guard !urls.isEmpty else { return }
+        CTFontManagerRegisterFontURLs(Array(Set(urls)) as CFArray, .process, true, nil)
+    }
+}
+
+extension View {
+    func microLabel(_ size: CGFloat = 10, tracking: CGFloat = 0.14, emphasis: Bool = false) -> some View {
+        font(Theme.label(size, emphasis: emphasis))
+            .tracking(size * tracking)
+            .textCase(.uppercase)
     }
 }
 
@@ -45,117 +99,206 @@ extension TimeInterval {
 
 // MARK: - Glass
 
-struct BackdropBlur: NSViewRepresentable {
-    var material: NSVisualEffectView.Material = .fullScreenUI
-    var forcesDark = true
+struct DesktopBlur: NSViewRepresentable {
+    var material: NSVisualEffectView.Material = .hudWindow
 
     func makeNSView(context: Context) -> NSVisualEffectView {
         let view = NSVisualEffectView()
         view.blendingMode = .behindWindow
         view.state = .active
-        apply(to: view)
+        view.appearance = NSAppearance(named: .darkAqua)
+        view.material = material
         return view
     }
 
     func updateNSView(_ view: NSVisualEffectView, context: Context) {
-        apply(to: view)
+        view.material = material
+    }
+}
+
+private struct GlassPanel<S: InsettableShape>: ViewModifier {
+    let shape: S
+    let material: NSVisualEffectView.Material
+
+    func body(content: Content) -> some View {
+        content
+            .background {
+                ZStack {
+                    DesktopBlur(material: material)
+                    Theme.Palette.surface
+                    AmberBloom(intensity: 0.75)
+                    FilmGrain(intensity: 0.09)
+                }
+                .clipShape(shape)
+            }
+            .overlay { sheen }
+            .overlay { rim }
+            .overlay { crown }
+            .shadow(color: .black.opacity(0.60), radius: 20, y: 8)
     }
 
-    private func apply(to view: NSVisualEffectView) {
-        view.material = material
-        view.appearance = forcesDark ? NSAppearance(named: .darkAqua) : nil
+    private var sheen: some View {
+        shape
+            .fill(
+                LinearGradient(
+                    colors: [Color.white.opacity(0.10), Color.white.opacity(0.02), .clear],
+                    startPoint: .top, endPoint: UnitPoint(x: 0.5, y: 0.62)
+                )
+            )
+            .allowsHitTesting(false)
+    }
+
+    private var rim: some View {
+        shape
+            .strokeBorder(
+                LinearGradient(
+                    colors: [
+                        Color.white.opacity(0.30),
+                        Theme.Palette.border,
+                        Color.white.opacity(0.04)
+                    ],
+                    startPoint: .topLeading, endPoint: .bottomTrailing
+                ),
+                lineWidth: 1
+            )
+            .allowsHitTesting(false)
+    }
+
+    private var crown: some View {
+        shape
+            .strokeBorder(
+                LinearGradient(
+                    colors: [Color.white.opacity(0.46), .clear],
+                    startPoint: .top, endPoint: UnitPoint(x: 0.5, y: 0.28)
+                ),
+                lineWidth: 1.2
+            )
+            .blur(radius: 1)
+            .allowsHitTesting(false)
     }
 }
 
 extension View {
-    func frostedPanel(cornerRadius: CGFloat = 30) -> some View {
-        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-        return self
-            .background(BackdropBlur(material: .fullScreenUI).clipShape(shape))
-            .overlay {
-                shape
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color.white.opacity(0.16),
-                                Color.white.opacity(0.03),
-                                .clear
-                            ],
-                            startPoint: .top, endPoint: .center
-                        )
-                    )
-                    .allowsHitTesting(false)
-            }
-            .overlay {
-                shape.strokeBorder(
-                    LinearGradient(
-                        colors: [
-                            Color.white.opacity(0.50),
-                            Color.white.opacity(0.12),
-                            Color.white.opacity(0.06)
-                        ],
-                        startPoint: .topLeading, endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1
-                )
-            }
-            .shadow(color: .black.opacity(0.45), radius: 30, y: 14)
+    func glassPanel(
+        cornerRadius: CGFloat = Theme.Radius.xl,
+        material: NSVisualEffectView.Material = .hudWindow
+    ) -> some View {
+        modifier(
+            GlassPanel(
+                shape: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous),
+                material: material
+            )
+        )
     }
 
-    func glassCapsule(tint: Color, intensity: Double = 0.48) -> some View {
-        self
-            .glassEffect(.regular.tint(tint.opacity(intensity)), in: .capsule)
+    func glassPill(prominent: Bool = false) -> some View {
+        glassEffect(prominent ? .regular.interactive() : .clear.interactive(), in: .capsule)
             .overlay {
                 Capsule()
-                    .fill(
+                    .strokeBorder(
                         LinearGradient(
-                            colors: [Color.white.opacity(0.22), .clear],
-                            startPoint: .top, endPoint: .center
-                        )
+                            colors: [
+                                Color.white.opacity(prominent ? 0.36 : 0.18),
+                                Color.white.opacity(0.05)
+                            ],
+                            startPoint: .top, endPoint: .bottom
+                        ),
+                        lineWidth: 1
                     )
                     .allowsHitTesting(false)
             }
-            .overlay(Capsule().strokeBorder(Color.white.opacity(0.28), lineWidth: 1))
     }
 }
 
-struct DriftingOrbs: View {
+// MARK: - Signature marks
+
+struct SectionLabel: View {
+    private let text: String
+
+    init(_ text: String) { self.text = text }
+
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
-            let t = timeline.date.timeIntervalSinceReferenceDate
-            Canvas { ctx, size in
-                ctx.addFilter(.blur(radius: min(size.width, size.height) * 0.20))
-                for orb in Orb.all {
-                    let x = size.width * (orb.origin.x + 0.06 * sin(t * orb.speed + orb.phase))
-                    let y = size.height * (orb.origin.y + 0.05 * cos(t * orb.speed * 0.8 + orb.phase))
-                    let r = min(size.width, size.height) * orb.radius
-                    ctx.fill(
-                        Path(ellipseIn: CGRect(x: x - r, y: y - r, width: r * 2, height: r * 2)),
-                        with: .color(orb.color.opacity(orb.opacity))
-                    )
-                }
+        HStack(spacing: 10) {
+            Rectangle()
+                .fill(Theme.signature)
+                .frame(width: 20, height: 1)
+            Text(text)
+                .microLabel(9, tracking: 0.26)
+                .foregroundStyle(Theme.signature)
+            Spacer(minLength: 0)
+        }
+    }
+}
+
+struct Brandmark: View {
+    var body: some View {
+        Link(destination: URL(string: "https://robinhrdlicka.cz")!) {
+            HStack(spacing: 5) {
+                Text("Made by")
+                    .foregroundStyle(Theme.Palette.ink.opacity(0.28))
+                Text("HROB")
+                    .foregroundStyle(Theme.signature)
             }
+            .microLabel(9, tracking: 0.22, emphasis: true)
+        }
+        .buttonStyle(.plain)
+        .pointerStyle(.link)
+    }
+}
+
+struct OutlineWord: View {
+    let word: String
+    var size: CGFloat
+    var lineWidth: CGFloat = 1.5
+    var tint: Color = Theme.Palette.ink.opacity(0.14)
+
+    var body: some View {
+        Canvas { ctx, canvas in
+            guard let glyphs = Self.glyphPath(word, size: size) else { return }
+            let bounds = glyphs.boundingBoxOfPath
+            guard bounds.width > 0, bounds.height > 0 else { return }
+
+            var placement = CGAffineTransform(scaleX: 1, y: -1)
+                .concatenating(
+                    CGAffineTransform(
+                        translationX: (canvas.width - bounds.width) / 2 - bounds.minX,
+                        y: (canvas.height - bounds.height) / 2 + bounds.maxY
+                    )
+                )
+            guard let placed = glyphs.copy(using: &placement) else { return }
+            ctx.stroke(Path(placed), with: .color(tint), lineWidth: lineWidth)
         }
         .allowsHitTesting(false)
     }
 
-    private struct Orb {
-        let origin: CGPoint
-        let radius: CGFloat
-        let color: Color
-        let opacity: Double
-        let speed: Double
-        let phase: Double
+    private static func glyphPath(_ word: String, size: CGFloat) -> CGPath? {
+        let font = CTFontCreateWithName(Theme.Cut.black.face as CFString, size, nil)
+        let line = CTLineCreateWithAttributedString(
+            NSAttributedString(
+                string: word,
+                attributes: [.font: font, .kern: -size * 0.025]
+            )
+        )
+        guard let runs = CTLineGetGlyphRuns(line) as? [CTRun] else { return nil }
 
-        static let all: [Orb] = [
-            Orb(origin: CGPoint(x: 0.24, y: 0.30), radius: 0.26,
-                color: .white, opacity: 0.10, speed: 0.11, phase: 0),
-            Orb(origin: CGPoint(x: 0.78, y: 0.26), radius: 0.20,
-                color: .white, opacity: 0.06, speed: 0.14, phase: 1.9),
-            Orb(origin: CGPoint(x: 0.66, y: 0.74), radius: 0.30,
-                color: .black, opacity: 0.22, speed: 0.09, phase: 3.4),
-            Orb(origin: CGPoint(x: 0.18, y: 0.80), radius: 0.18,
-                color: .black, opacity: 0.18, speed: 0.13, phase: 5.1)
-        ]
+        let combined = CGMutablePath()
+        for run in runs {
+            let count = CTRunGetGlyphCount(run)
+            guard count > 0 else { continue }
+
+            var ids = [CGGlyph](repeating: 0, count: count)
+            var origins = [CGPoint](repeating: .zero, count: count)
+            CTRunGetGlyphs(run, CFRange(location: 0, length: count), &ids)
+            CTRunGetPositions(run, CFRange(location: 0, length: count), &origins)
+
+            for index in 0..<count {
+                guard let glyph = CTFontCreatePathForGlyph(font, ids[index], nil) else { continue }
+                combined.addPath(
+                    glyph,
+                    transform: CGAffineTransform(translationX: origins[index].x, y: origins[index].y)
+                )
+            }
+        }
+        return combined.isEmpty ? nil : combined
     }
 }

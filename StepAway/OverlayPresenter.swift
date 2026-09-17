@@ -123,7 +123,7 @@ final class OverlayPresenter {
     private func presentIdle() {
         guard let screen = NSScreen.main else { return }
 
-        let size = CGSize(width: 380, height: 286)
+        let size = CGSize(width: 384, height: 316)
         let frame = CGRect(
             x: screen.frame.midX - size.width / 2,
             y: screen.frame.midY - size.height / 2,

@@ -56,6 +56,26 @@ don't write the comment.
 - Give overlay content explicit sizes rather than combining `.frame(maxWidth: .infinity)`
   with outer padding, which overflows its window
 
+## Design language
+
+The app borrows the visual system of robinhrdlicka.cz. Tokens live in `Theme`; nothing
+below is restated as a literal in a view.
+
+- **Palette.** Bone `#EDE6DA` carries every piece of text and line art, at full strength or
+  stepped down through `inkMuted` / `hairline` / `border`. Colour is light, never fill:
+  `AmberBloom` lays diffuse ember and teal behind the glass, and the `signature` gradient
+  (flame to lagoon) marks only the section labels and the brandmark.
+- **Type.** Barlow Condensed for display, set uppercase with tight leading; Crimson Pro
+  Light Italic for the one line that speaks to the reader; IBM Plex Mono for every label,
+  row and counter, uppercase and tracked. The three families ship in `Fonts/` under the
+  OFL and register at launch; ask for them by PostScript name.
+- **Counters use IBM Plex Mono** because its digits are the same width, so a running clock
+  never wobbles. Barlow has no tabular figures — don't set a countdown in it.
+- **Glass.** A surface is a behind-window blur plus a four-percent white fill, a top sheen,
+  a rim, a crowned top edge and a wide soft shadow — `glassPanel`. Controls use the system
+  Liquid Glass through `glassPill`. Radii are 24 and 36, or a capsule.
+- **Grain** sits over every surface. It is a tiled noise image, not per-frame drawing.
+
 ## Formatting
 
 - Four spaces, no tabs

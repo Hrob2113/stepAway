@@ -12,11 +12,12 @@ struct SettingsView: View {
                 .tabItem { Label("Timers", systemImage: "timer") }
         }
         .background {
-            BackdropBlur(material: .underWindowBackground)
+            DesktopBlur(material: .hudWindow)
                 .ignoresSafeArea()
         }
-        .frame(width: 470, height: 500)
-        .tint(Theme.Palette.chalk)
+        .frame(width: 470, height: 520)
+        .overlay(alignment: .bottom) { Brandmark().opacity(0.8).padding(.bottom, 12) }
+        .tint(Theme.Palette.ink)
     }
 }
 
@@ -28,7 +29,7 @@ private struct GlassForm<Content: View>: View {
             .formStyle(.grouped)
             .scrollContentBackground(.hidden)
             .background {
-                BackdropBlur(material: .underWindowBackground)
+                DesktopBlur(material: .hudWindow)
                     .ignoresSafeArea()
             }
     }
@@ -107,10 +108,13 @@ private struct PresetRow: View {
                     .font(.system(size: 14))
 
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(preset.name).font(.system(size: 13, weight: .medium))
+                    Text(preset.name)
+                        .font(Theme.display(17, .heavy))
+                        .textCase(.uppercase)
+                        .tracking(0.4)
                     Text(preset.detail)
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
+                        .font(Theme.voice(13))
+                        .foregroundStyle(Theme.Palette.inkMuted)
                 }
                 Spacer(minLength: 0)
             }
@@ -162,11 +166,11 @@ private struct TimersTab: View {
                     manager.startFreshSession()
                 } label: {
                     Text("Reset the current session")
-                        .font(.system(size: 12, weight: .medium))
+                        .microLabel(10, tracking: 0.14)
                         .foregroundStyle(Theme.Palette.ink)
-                        .padding(.horizontal, 18)
-                        .padding(.vertical, 7)
-                        .glassCapsule(tint: Theme.Palette.glass, intensity: 0.35)
+                        .padding(.horizontal, 22)
+                        .padding(.vertical, 10)
+                        .glassPill()
                 }
                 .buttonStyle(.plain)
                 Text("Starts the work timer over from the beginning.")

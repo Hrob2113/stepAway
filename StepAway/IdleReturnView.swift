@@ -7,33 +7,36 @@ struct IdleReturnView: View {
     @State private var appeared = false
 
     var body: some View {
-        VStack(spacing: 0) {
-            Image(systemName: "sun.horizon")
-                .font(.system(size: 34, weight: .light))
-                .foregroundStyle(Theme.Palette.chalk)
-                .padding(.bottom, 18)
+        VStack(alignment: .leading, spacing: 0) {
+            SectionLabel("You stepped away")
 
             Text("Welcome back")
-                .font(Theme.rounded(22, .semibold))
+                .font(Theme.display(38, .black))
+                .tracking(-0.5)
+                .textCase(.uppercase)
                 .foregroundStyle(Theme.Palette.ink)
+                .padding(.top, 14)
 
             Text("You were away a while. Did your eyes get a rest?")
-                .font(Theme.rounded(14))
+                .font(Theme.voice(16))
                 .foregroundStyle(Theme.Palette.inkMuted)
-                .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
-                .padding(.top, 7)
+                .padding(.top, 6)
 
             VStack(spacing: 9) {
                 choice("Yes, start a new session", prominent: true, action: manager.creditIdleBreak)
                 choice("No, keep my timer running", prominent: false, action: manager.dismissIdleReturn)
             }
-            .padding(.top, 24)
+            .padding(.top, 26)
+
+            Brandmark()
+                .opacity(0.7)
+                .padding(.top, 20)
         }
-        .padding(.horizontal, 26)
+        .padding(.horizontal, 28)
         .padding(.vertical, 28)
-        .frame(width: 352, height: 258)
-        .frostedPanel(cornerRadius: 36)
+        .frame(width: 356, height: 288, alignment: .topLeading)
+        .glassPanel(cornerRadius: Theme.Radius.xl)
         .opacity(appeared ? 1 : 0)
         .scaleEffect(appeared ? 1 : 0.95)
         .onAppear {
@@ -42,28 +45,15 @@ struct IdleReturnView: View {
         }
     }
 
-    @ViewBuilder
     private func choice(_ label: String, prominent: Bool, action: @escaping () -> Void) -> some View {
-        if prominent {
-            Button(action: action) {
-                Text(label)
-                    .font(Theme.rounded(13, .semibold))
-                    .foregroundStyle(Theme.Palette.ink)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 9)
-                    .glassCapsule(tint: Theme.Palette.glass, intensity: 0.70)
-            }
-            .buttonStyle(.plain)
-        } else {
-            Button(action: action) {
-                Text(label)
-                    .font(Theme.rounded(13))
-                    .foregroundStyle(Theme.Palette.inkMuted)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 9)
-                    .glassCapsule(tint: Theme.Palette.glass, intensity: 0.28)
-            }
-            .buttonStyle(.plain)
+        Button(action: action) {
+            Text(label)
+                .microLabel(10, tracking: 0.14, emphasis: prominent)
+                .foregroundStyle(prominent ? Theme.Palette.ink : Theme.Palette.inkMuted)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .glassPill(prominent: prominent)
         }
+        .buttonStyle(.plain)
     }
 }

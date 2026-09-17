@@ -10,13 +10,15 @@ struct BreakOverlayView: View {
     @State private var breathing = false
     @State private var interactive = false
 
-    private var ringSize: CGFloat { kind == .long ? 320 : 286 }
+    private var ringSize: CGFloat { kind == .long ? 300 : 268 }
+    private var ghostWord: String { kind == .short ? "LOOK AWAY" : "STAND UP" }
 
     var body: some View {
         ZStack {
             backdrop
             panel
             if settings.allowSkip { skipControl }
+            credit
         }
         .ignoresSafeArea()
         .onAppear(perform: enter)
@@ -26,12 +28,31 @@ struct BreakOverlayView: View {
 
     private var backdrop: some View {
         ZStack {
-            BackdropBlur(material: .fullScreenUI)
+            DesktopBlur(material: .hudWindow)
 
-            if !reduceMotion { DriftingOrbs() }
+            AmberBloom(animated: !reduceMotion)
+
+            GeometryReader { geo in
+                OutlineWord(
+                    word: ghostWord,
+                    size: min(geo.size.height * 0.30, geo.size.width * 0.155),
+                    lineWidth: 1.4,
+                    tint: Theme.Palette.ink.opacity(0.075)
+                )
+                .frame(width: geo.size.width * 1.1, height: geo.size.height * 0.40)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+                .offset(x: -geo.size.width * 0.17)
+            }
 
             RadialGradient(
-                colors: [Color.white.opacity(0.07), .clear],
+                colors: [Color.black.opacity(0.30), .clear],
+                center: .center, startRadius: 0, endRadius: 660
+            )
+
+            FilmGrain(intensity: 0.13)
+
+            RadialGradient(
+                colors: [Theme.Palette.ink.opacity(0.06), .clear],
                 center: .center, startRadius: 0, endRadius: 520
             )
             .scaleEffect(breathing ? 1.08 : 0.94)
@@ -44,14 +65,15 @@ struct BreakOverlayView: View {
     // MARK: - Panel
 
     private var panel: some View {
-        VStack(spacing: 34) {
+        VStack(spacing: 30) {
             dial
                 .opacity(appeared ? 1 : 0)
                 .scaleEffect(appeared ? 1 : 0.92)
                 .animation(Theme.Motion.bloom, value: appeared)
 
             Text(manager.timeRemaining.clockText)
-                .font(Theme.counter(62))
+                .font(Theme.counter(78))
+                .tracking(-3)
                 .foregroundStyle(Theme.Palette.ink)
                 .contentTransition(.numericText(countsDown: true))
                 .animation(Theme.Motion.quick, value: manager.timeRemaining)
@@ -59,12 +81,16 @@ struct BreakOverlayView: View {
                 .offset(y: appeared ? 0 : 10)
                 .animation(Theme.Motion.bloom.delay(0.12), value: appeared)
 
-            VStack(spacing: 9) {
+            VStack(spacing: 14) {
                 Text(kind.title)
-                    .font(Theme.rounded(26, .medium))
+                    .font(Theme.display(46, .black))
+                    .tracking(-0.8)
+                    .textCase(.uppercase)
+                    .lineSpacing(-6)
                     .foregroundStyle(Theme.Palette.ink)
+
                 Text(kind.guidance)
-                    .font(Theme.rounded(16))
+                    .font(Theme.voice(19))
                     .foregroundStyle(Theme.Palette.inkMuted)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -78,12 +104,12 @@ struct BreakOverlayView: View {
     private var dial: some View {
         ZStack {
             Circle()
-                .stroke(Theme.Palette.ink.opacity(0.10), lineWidth: 7)
+                .stroke(Theme.Palette.ink.opacity(0.09), lineWidth: 6)
 
             Circle()
                 .trim(from: 0, to: appeared ? manager.progress : 0)
                 .stroke(
-                    Theme.Palette.chalk.opacity(0.55),
+                    Theme.Palette.ink.opacity(0.50),
                     style: StrokeStyle(lineWidth: 9, lineCap: .round)
                 )
                 .rotationEffect(.degrees(-90))
@@ -94,23 +120,16 @@ struct BreakOverlayView: View {
             Circle()
                 .trim(from: 0, to: appeared ? manager.progress : 0)
                 .stroke(
-                    AngularGradient(
-                        colors: [
-                            Theme.Palette.chalk,
-                            Theme.Palette.ink,
-                            Theme.Palette.chalk
-                        ],
-                        center: .center
-                    ),
-                    style: StrokeStyle(lineWidth: 7, lineCap: .round)
+                    Theme.Palette.ink.opacity(0.88),
+                    style: StrokeStyle(lineWidth: 6, lineCap: .round)
                 )
                 .rotationEffect(.degrees(-90))
-                .shadow(color: Theme.Palette.chalk.opacity(0.25), radius: 10)
+                .shadow(color: Theme.Palette.ink.opacity(0.22), radius: 10)
                 .animation(.linear(duration: 1), value: manager.progress)
 
             if kind == .short {
-                EyesGlyph(animated: !reduceMotion)
-                    .frame(width: ringSize * 0.54, height: ringSize * 0.32)
+                EyeGlyph(animated: !reduceMotion)
+                    .frame(width: ringSize * 0.70, height: ringSize * 0.32)
             } else {
                 StretchGlyph(animated: !reduceMotion)
                     .frame(width: ringSize * 0.44, height: ringSize * 0.54)
@@ -124,18 +143,31 @@ struct BreakOverlayView: View {
             Spacer()
             Button(action: manager.skipBreak) {
                 Text("Skip this break")
-                    .font(Theme.rounded(13))
+                    .microLabel(10, tracking: 0.18)
                     .foregroundStyle(Theme.Palette.inkMuted)
-                    .padding(.horizontal, 22)
-                    .padding(.vertical, 10)
-                    .glassCapsule(tint: Theme.Palette.glass, intensity: 0.35)
+                    .padding(.horizontal, 26)
+                    .padding(.vertical, 12)
+                    .glassPill()
             }
             .buttonStyle(.plain)
-            .padding(.bottom, 54)
+            .padding(.bottom, 56)
             .opacity(appeared ? 1 : 0)
             .disabled(!interactive)
             .allowsHitTesting(interactive)
         }
+    }
+
+    private var credit: some View {
+        VStack {
+            Spacer()
+            HStack {
+                Brandmark()
+                    .opacity(appeared ? 0.75 : 0)
+                    .animation(Theme.Motion.bloom.delay(0.5), value: appeared)
+                Spacer()
+            }
+        }
+        .padding(28)
     }
 
     // MARK: - Entrance

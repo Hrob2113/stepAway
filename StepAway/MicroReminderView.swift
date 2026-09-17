@@ -17,23 +17,25 @@ struct MicroReminderView: View {
     }
 
     var body: some View {
-        HStack(spacing: 15) {
+        HStack(spacing: 16) {
             glyph
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .font(Theme.rounded(16, .semibold))
+                    .font(Theme.display(21, .heavy))
+                    .tracking(0.3)
+                    .textCase(.uppercase)
                     .foregroundStyle(Theme.Palette.ink)
                 Text(detail)
-                    .font(Theme.rounded(13))
+                    .font(Theme.voice(14))
                     .foregroundStyle(Theme.Palette.inkMuted)
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 16)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 17)
         .frame(width: 356, alignment: .leading)
-        .frostedPanel(cornerRadius: 30)
+        .glassPanel(cornerRadius: Theme.Radius.lg)
         .opacity(appeared ? 1 : 0)
         .offset(y: appeared ? 0 : -18)
         .onAppear(perform: enter)
@@ -44,10 +46,10 @@ struct MicroReminderView: View {
             if kind == .posture {
                 PostureGlyph(animated: !reduceMotion)
             } else {
-                EyesGlyph(animated: !reduceMotion)
+                EyeGlyph(animated: !reduceMotion)
             }
         }
-        .frame(width: 42, height: 36)
+        .frame(width: 50, height: 28)
     }
 
     private func enter() {

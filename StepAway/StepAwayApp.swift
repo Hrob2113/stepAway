@@ -17,6 +17,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
 
+        Theme.registerBundledFonts()
+
         NSApp.appearance = NSAppearance(named: .darkAqua)
 
         UNUserNotificationCenter.current()

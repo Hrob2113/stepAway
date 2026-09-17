@@ -99,17 +99,6 @@ final class BreakManager {
         }
     }
 
-    var menuBarIcon: String {
-        switch phase {
-        case .working:
-            if progress < 0.34 { "hourglass.tophalf.filled" }
-            else if progress < 0.72 { "hourglass" }
-            else { "hourglass.bottomhalf.filled" }
-        case .resting: "eye.fill"
-        case .paused: "pause.circle.fill"
-        }
-    }
-
     var statusHeadline: String {
         switch phase {
         case .working: "Next break in \(timeRemaining.casualText)"

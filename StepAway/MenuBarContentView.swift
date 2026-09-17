@@ -5,6 +5,7 @@ struct MenuBarContentView: View {
     let settings: AppSettings
 
     @State private var showingPauseOptions = false
+    @State private var onScreen = false
 
     private var stateLabel: String {
         if manager.isPaused { return "Paused" }
@@ -15,28 +16,33 @@ struct MenuBarContentView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
+                .padding(.bottom, 18)
 
-            SectionLabel("Session").padding(.top, 20).padding(.bottom, 9)
             actions
 
-            SectionLabel("App").padding(.top, 18).padding(.bottom, 9)
+            Rectangle()
+                .fill(Theme.Palette.border)
+                .frame(height: 1)
+                .padding(.vertical, 10)
+                .padding(.horizontal, 10)
+
             footer
 
-            Brandmark().padding(.top, 18).padding(.leading, 10)
+            Brandmark().padding(.top, 16).padding(.leading, 10)
         }
         .padding(14)
         .frame(width: 300)
         .background {
             ZStack {
-                DesktopBlur(material: .hudWindow)
-                Theme.Palette.surface
-                AmberBloom(intensity: 0.85)
-                FilmGrain(intensity: 0.09)
+                ClearWindowBackground()
+                DesktopBlur(material: .underWindowBackground)
+                AmberBloom(intensity: 0.55, animated: onScreen)
+                FilmGrain(intensity: 0.07)
             }
         }
         .overlay(alignment: .top) {
             LinearGradient(
-                colors: [Color.white.opacity(0.10), .clear],
+                colors: [Color.white.opacity(0.07), .clear],
                 startPoint: .top, endPoint: .bottom
             )
             .frame(height: 96)
@@ -44,10 +50,12 @@ struct MenuBarContentView: View {
         }
         .overlay(alignment: .top) {
             Rectangle()
-                .fill(Color.white.opacity(0.14))
+                .fill(Color.white.opacity(0.11))
                 .frame(height: 1)
                 .allowsHitTesting(false)
         }
+        .onAppear { onScreen = true }
+        .onDisappear { onScreen = false }
     }
 
     // MARK: - Header
@@ -61,7 +69,7 @@ struct MenuBarContentView: View {
                             .font(.system(size: 17, weight: .light))
                             .foregroundStyle(Theme.Palette.chalk)
                     } else {
-                        HourglassGlyph(progress: manager.progress)
+                        HourglassGlyph(progress: manager.progress, animated: onScreen)
                     }
                 }
                 .frame(width: 24, height: 33)

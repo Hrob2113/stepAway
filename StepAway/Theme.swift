@@ -116,6 +116,22 @@ struct DesktopBlur: NSViewRepresentable {
     }
 }
 
+struct ClearWindowBackground: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        DispatchQueue.main.async { Self.clear(view.window) }
+        return view
+    }
+
+    func updateNSView(_ view: NSView, context: Context) {}
+
+    private static func clear(_ window: NSWindow?) {
+        guard let window, window.isOpaque || window.backgroundColor != .clear else { return }
+        window.isOpaque = false
+        window.backgroundColor = .clear
+    }
+}
+
 private struct GlassPanel<S: InsettableShape>: ViewModifier {
     let shape: S
     let material: NSVisualEffectView.Material
@@ -126,7 +142,7 @@ private struct GlassPanel<S: InsettableShape>: ViewModifier {
                 ZStack {
                     DesktopBlur(material: material)
                     Theme.Palette.surface
-                    AmberBloom(intensity: 0.75)
+                    AmberBloom(intensity: 0.75, animated: false)
                     FilmGrain(intensity: 0.09)
                 }
                 .clipShape(shape)
@@ -243,62 +259,5 @@ struct Brandmark: View {
         }
         .buttonStyle(.plain)
         .pointerStyle(.link)
-    }
-}
-
-struct OutlineWord: View {
-    let word: String
-    var size: CGFloat
-    var lineWidth: CGFloat = 1.5
-    var tint: Color = Theme.Palette.ink.opacity(0.14)
-
-    var body: some View {
-        Canvas { ctx, canvas in
-            guard let glyphs = Self.glyphPath(word, size: size) else { return }
-            let bounds = glyphs.boundingBoxOfPath
-            guard bounds.width > 0, bounds.height > 0 else { return }
-
-            var placement = CGAffineTransform(scaleX: 1, y: -1)
-                .concatenating(
-                    CGAffineTransform(
-                        translationX: (canvas.width - bounds.width) / 2 - bounds.minX,
-                        y: (canvas.height - bounds.height) / 2 + bounds.maxY
-                    )
-                )
-            guard let placed = glyphs.copy(using: &placement) else { return }
-            ctx.stroke(Path(placed), with: .color(tint), lineWidth: lineWidth)
-        }
-        .allowsHitTesting(false)
-    }
-
-    private static func glyphPath(_ word: String, size: CGFloat) -> CGPath? {
-        let font = CTFontCreateWithName(Theme.Cut.black.face as CFString, size, nil)
-        let line = CTLineCreateWithAttributedString(
-            NSAttributedString(
-                string: word,
-                attributes: [.font: font, .kern: -size * 0.025]
-            )
-        )
-        guard let runs = CTLineGetGlyphRuns(line) as? [CTRun] else { return nil }
-
-        let combined = CGMutablePath()
-        for run in runs {
-            let count = CTRunGetGlyphCount(run)
-            guard count > 0 else { continue }
-
-            var ids = [CGGlyph](repeating: 0, count: count)
-            var origins = [CGPoint](repeating: .zero, count: count)
-            CTRunGetGlyphs(run, CFRange(location: 0, length: count), &ids)
-            CTRunGetPositions(run, CFRange(location: 0, length: count), &origins)
-
-            for index in 0..<count {
-                guard let glyph = CTFontCreatePathForGlyph(font, ids[index], nil) else { continue }
-                combined.addPath(
-                    glyph,
-                    transform: CGAffineTransform(translationX: origins[index].x, y: origins[index].y)
-                )
-            }
-        }
-        return combined.isEmpty ? nil : combined
     }
 }

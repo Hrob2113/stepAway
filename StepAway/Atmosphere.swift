@@ -50,23 +50,32 @@ struct AmberBloom: View {
     var animated = true
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 20.0)) { timeline in
-            let t = animated ? timeline.date.timeIntervalSinceReferenceDate : 0
-            GeometryReader { geo in
-                let reach = max(geo.size.width, geo.size.height)
-                ZStack {
-                    ForEach(Array(Light.all.enumerated()), id: \.offset) { _, light in
-                        RadialGradient(
-                            gradient: Gradient(stops: light.stops(intensity)),
-                            center: light.centre(at: t),
-                            startRadius: 0,
-                            endRadius: reach * light.reach
-                        )
-                    }
+        Group {
+            if animated {
+                TimelineView(.animation(minimumInterval: 1.0 / 20.0)) { timeline in
+                    field(at: timeline.date.timeIntervalSinceReferenceDate)
                 }
+            } else {
+                field(at: 0)
             }
         }
         .allowsHitTesting(false)
+    }
+
+    private func field(at t: TimeInterval) -> some View {
+        GeometryReader { geo in
+            let reach = max(geo.size.width, geo.size.height)
+            ZStack {
+                ForEach(Array(Light.all.enumerated()), id: \.offset) { _, light in
+                    RadialGradient(
+                        gradient: Gradient(stops: light.stops(intensity)),
+                        center: light.centre(at: t),
+                        startRadius: 0,
+                        endRadius: reach * light.reach
+                    )
+                }
+            }
+        }
     }
 
     private struct Light {

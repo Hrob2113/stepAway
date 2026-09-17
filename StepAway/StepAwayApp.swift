@@ -35,7 +35,10 @@ struct StepAwayApp: App {
         MenuBarExtra {
             MenuBarContentView(manager: model.manager, settings: model.settings)
         } label: {
-            Image(systemName: model.manager.menuBarIcon)
+            MenuBarEyeIcon(
+                resting: model.manager.isResting,
+                paused: model.manager.isPaused
+            )
             Text(model.manager.menuBarText)
         }
         .menuBarExtraStyle(.window)

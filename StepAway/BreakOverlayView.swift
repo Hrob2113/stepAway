@@ -11,7 +11,6 @@ struct BreakOverlayView: View {
     @State private var interactive = false
 
     private var ringSize: CGFloat { kind == .long ? 300 : 268 }
-    private var ghostWord: String { kind == .short ? "LOOK AWAY" : "STAND UP" }
 
     var body: some View {
         ZStack {
@@ -31,18 +30,6 @@ struct BreakOverlayView: View {
             DesktopBlur(material: .hudWindow)
 
             AmberBloom(animated: !reduceMotion)
-
-            GeometryReader { geo in
-                OutlineWord(
-                    word: ghostWord,
-                    size: min(geo.size.height * 0.30, geo.size.width * 0.155),
-                    lineWidth: 1.4,
-                    tint: Theme.Palette.ink.opacity(0.075)
-                )
-                .frame(width: geo.size.width * 1.1, height: geo.size.height * 0.40)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
-                .offset(x: -geo.size.width * 0.17)
-            }
 
             RadialGradient(
                 colors: [Color.black.opacity(0.30), .clear],

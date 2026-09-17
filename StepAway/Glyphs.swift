@@ -310,3 +310,105 @@ struct PostureGlyph: View {
         )
     }
 }
+
+struct MenuBarEyeIcon: View {
+    let resting: Bool
+    let paused: Bool
+
+    @State private var lid = 1.0
+    @State private var gaze = 0.0
+
+    private static let size = NSSize(width: 20, height: 13)
+    private static var cache: [Frame: NSImage] = [:]
+
+    private struct Frame: Hashable {
+        let lid: Int
+        let gaze: Int
+    }
+
+    var body: some View {
+        Image(nsImage: icon())
+            .task { await live() }
+    }
+
+    private func live() async {
+        while !Task.isCancelled {
+            try? await Task.sleep(for: .seconds(.random(in: 3.8...7.2)))
+            guard !resting, !paused else { continue }
+
+            let steps = 9
+            for step in 0...steps {
+                let u = Double(step) / Double(steps)
+                lid = 1 - (u < 0.38 ? smooth(u / 0.38) : smooth(1 - (u - 0.38) / 0.62)) * 0.96
+                if step == 5 { gaze = .random(in: -0.7...0.7) }
+                try? await Task.sleep(for: .milliseconds(40))
+            }
+            lid = 1
+        }
+    }
+
+    private func icon() -> NSImage {
+        let open = resting ? 0 : (paused ? 0.62 : lid)
+        let frame = Frame(
+            lid: Int((open * 12).rounded()),
+            gaze: resting || paused ? 0 : Int((gaze * 10).rounded())
+        )
+        if let cached = Self.cache[frame] { return cached }
+
+        let image = NSImage(size: Self.size)
+        image.lockFocus()
+        draw(open: Double(frame.lid) / 12, gaze: CGFloat(frame.gaze) / 10)
+        image.unlockFocus()
+        image.isTemplate = true
+
+        Self.cache[frame] = image
+        return image
+    }
+
+    private func draw(open: Double, gaze: CGFloat) {
+        let w = Self.size.width, h = Self.size.height
+        let cx = w / 2, cy = h / 2
+        let halfW = w / 2 - 1
+
+        NSColor.black.setStroke()
+        NSColor.black.setFill()
+
+        guard open > 0.14 else {
+            let lash = NSBezierPath()
+            lash.move(to: NSPoint(x: cx - halfW, y: cy))
+            lash.line(to: NSPoint(x: cx + halfW, y: cy))
+            lash.lineWidth = 1.4
+            lash.lineCapStyle = .round
+            lash.stroke()
+            return
+        }
+
+        let halfH = (h / 2 - 1) * open
+        let almond = NSBezierPath()
+        let steps = 40
+        for i in 0...steps {
+            let u = CGFloat(i) / CGFloat(steps) * 2 - 1
+            let point = NSPoint(x: cx + u * halfW, y: cy + lidHeight(u, halfH))
+            if i == 0 { almond.move(to: point) } else { almond.line(to: point) }
+        }
+        for i in stride(from: steps, through: 0, by: -1) {
+            let u = CGFloat(i) / CGFloat(steps) * 2 - 1
+            almond.line(to: NSPoint(x: cx + u * halfW, y: cy - lidHeight(u, halfH)))
+        }
+        almond.close()
+        almond.lineWidth = 1.2
+        almond.lineJoinStyle = .round
+        almond.stroke()
+
+        let r = min(halfH * 0.66, w * 0.15)
+        let ix = cx + gaze * max(0, halfW - r * 2.1)
+        NSBezierPath(
+            ovalIn: NSRect(x: ix - r, y: cy - r, width: r * 2, height: r * 2)
+        ).fill()
+    }
+
+    private func lidHeight(_ u: CGFloat, _ halfH: CGFloat) -> CGFloat {
+        let s = 1 - u * u
+        return s <= 0 ? 0 : halfH * CGFloat(pow(Double(s), 0.85))
+    }
+}

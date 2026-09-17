@@ -101,6 +101,7 @@ extension TimeInterval {
 
 struct DesktopBlur: NSViewRepresentable {
     var material: NSVisualEffectView.Material = .hudWindow
+    var alpha: CGFloat = 1
 
     func makeNSView(context: Context) -> NSVisualEffectView {
         let view = NSVisualEffectView()
@@ -108,11 +109,13 @@ struct DesktopBlur: NSViewRepresentable {
         view.state = .active
         view.appearance = NSAppearance(named: .darkAqua)
         view.material = material
+        view.alphaValue = alpha
         return view
     }
 
     func updateNSView(_ view: NSVisualEffectView, context: Context) {
         view.material = material
+        view.alphaValue = alpha
     }
 }
 
@@ -253,7 +256,7 @@ struct Brandmark: View {
                 Text("Made by")
                     .foregroundStyle(Theme.Palette.ink.opacity(0.28))
                 Text("HROB")
-                    .foregroundStyle(Theme.signature)
+                    .foregroundStyle(Theme.Palette.ember)
             }
             .microLabel(9, tracking: 0.22, emphasis: true)
         }

@@ -10,28 +10,52 @@ private func smooth(_ x: Double) -> Double {
     return t * t * (3 - 2 * t)
 }
 
-private struct WindowReader: NSViewRepresentable {
-    @Binding var window: NSWindow?
+private final class Gaze {
+    private(set) var current: CGPoint = .zero
 
-    func makeNSView(context: Context) -> NSView {
-        let view = NSView()
-        DispatchQueue.main.async { window = view.window }
-        return view
-    }
+    private var from: CGPoint = .zero
+    private var to: CGPoint = .zero
+    private var startedAt: TimeInterval = 0
+    private var duration: TimeInterval = 0.1
+    private var settleUntil: TimeInterval = 0
+    private var started = false
 
-    func updateNSView(_ nsView: NSView, context: Context) {
-        DispatchQueue.main.async {
-            if window !== nsView.window { window = nsView.window }
+    func step(at t: TimeInterval, lidsDown: Bool) {
+        if !started {
+            started = true
+            startedAt = t
+            settleUntil = t + 0.6
         }
+
+        let arrived = t >= startedAt + duration
+        let restless = t >= settleUntil
+        let glancesAway = lidsDown && arrived && Double.random(in: 0...1) < 0.06
+
+        if arrived, restless || glancesAway {
+            from = current
+            to = Self.somewhere(avoiding: to)
+            let reach = Double(hypot(to.x - from.x, to.y - from.y))
+            duration = glancesAway ? 0.04 : 0.055 + reach * 0.075
+            startedAt = t
+            settleUntil = t + duration + .random(in: 0.55...2.4)
+        }
+
+        let travel = duration > 0 ? min(1, max(0, (t - startedAt) / duration)) : 1
+        let eased = travel * travel * travel * (travel * (travel * 6 - 15) + 10)
+        current = CGPoint(
+            x: lerp(from.x, to.x, eased) + CGFloat(sin(t * 1.7) * 0.011),
+            y: lerp(from.y, to.y, eased) + CGFloat(cos(t * 1.27) * 0.009)
+        )
     }
-}
 
-private final class GazeTracker {
-    var current: CGPoint = .zero
-
-    func step(toward target: CGPoint, rate: CGFloat) {
-        current.x += (target.x - current.x) * rate
-        current.y += (target.y - current.y) * rate
+    private static func somewhere(avoiding previous: CGPoint) -> CGPoint {
+        for _ in 0..<4 {
+            let candidate = Double.random(in: 0...1) < 0.28
+                ? CGPoint(x: .random(in: -0.16...0.16), y: .random(in: -0.12...0.12))
+                : CGPoint(x: .random(in: -0.86...0.86), y: .random(in: -0.5...0.5))
+            if hypot(candidate.x - previous.x, candidate.y - previous.y) > 0.3 { return candidate }
+        }
+        return CGPoint(x: .random(in: -0.8...0.8), y: .random(in: -0.45...0.45))
     }
 }
 
@@ -39,35 +63,18 @@ struct EyeGlyph: View {
     var tint: Color = Theme.Palette.ink
     var animated = true
 
-    @State private var window: NSWindow?
-    @State private var gaze = GazeTracker()
+    @State private var gaze = Gaze()
 
     var body: some View {
-        GeometryReader { geo in
-            TimelineView(.animation(minimumInterval: 1.0 / 60.0)) { timeline in
-                Canvas { ctx, size in
-                    let t = animated ? timeline.date.timeIntervalSinceReferenceDate : 0
-                    if animated {
-                        gaze.step(toward: target(geo), rate: 0.10)
-                    }
-                    draw(in: ctx, size: size, t: t, look: gaze.current)
+        TimelineView(.animation(minimumInterval: 1.0 / 60.0)) { timeline in
+            Canvas { ctx, size in
+                let t = animated ? timeline.date.timeIntervalSinceReferenceDate : 0
+                if animated {
+                    gaze.step(at: t, lidsDown: openness(at: t) < 0.3)
                 }
+                draw(in: ctx, size: size, t: t, look: gaze.current)
             }
         }
-        .background(WindowReader(window: $window))
-    }
-
-    private func target(_ geo: GeometryProxy) -> CGPoint {
-        guard let window else { return .zero }
-        let inWindow = geo.frame(in: .global)
-        let frame = window.frame
-        let centre = CGPoint(x: frame.minX + inWindow.midX, y: frame.maxY - inWindow.midY)
-        let mouse = NSEvent.mouseLocation
-        let reach: CGFloat = 480
-        return CGPoint(
-            x: max(-1, min(1, (mouse.x - centre.x) / reach)),
-            y: max(-1, min(1, (mouse.y - centre.y) / reach))
-        )
     }
 
     private func openness(at t: TimeInterval) -> Double {

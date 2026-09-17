@@ -35,9 +35,9 @@ struct MenuBarContentView: View {
         .background {
             ZStack {
                 ClearWindowBackground()
-                DesktopBlur(material: .underWindowBackground)
-                AmberBloom(intensity: 0.55, animated: onScreen)
-                FilmGrain(intensity: 0.07)
+                DesktopBlur(material: .underWindowBackground, alpha: 0.4)
+                AmberBloom(intensity: 0.26, animated: onScreen)
+                FilmGrain(intensity: 0.05)
             }
         }
         .overlay(alignment: .top) {
@@ -137,20 +137,19 @@ struct MenuBarContentView: View {
             if settings.allowSkip {
                 MenuRow("Skip next break", action: manager.skipBreak)
             }
-            MenuRow("Pause", trailing: showingPauseOptions ? "chevron.up" : "chevron.down") {
+            MenuRow("Pause", trailing: "chevron.down", turned: showingPauseOptions) {
                 withAnimation(Theme.Motion.settle) { showingPauseOptions.toggle() }
             }
 
             if showingPauseOptions {
-                VStack(alignment: .leading, spacing: 0) {
-                    MenuRow("For 30 minutes", inset: true) { pause(for: 30 * 60) }
-                    MenuRow("For 1 hour", inset: true) { pause(for: 3600) }
-                    MenuRow("Until tomorrow", inset: true) {
+                PauseOptions(
+                    hold: { pause(for: $0) },
+                    untilTomorrow: {
                         showingPauseOptions = false
                         manager.pauseUntilTomorrow()
                     }
-                }
-                .transition(.opacity.combined(with: .move(edge: .top)))
+                )
+                .transition(.opacity.combined(with: .scale(scale: 0.97, anchor: .top)))
             }
         }
 
@@ -183,16 +182,18 @@ struct MenuBarContentView: View {
 private struct MenuRow: View {
     let title: String
     var trailing: String?
+    var turned = false
     var inset = false
     var accent = false
     let action: () -> Void
 
     init(
-        _ title: String, trailing: String? = nil,
+        _ title: String, trailing: String? = nil, turned: Bool = false,
         inset: Bool = false, accent: Bool = false, action: @escaping () -> Void
     ) {
         self.title = title
         self.trailing = trailing
+        self.turned = turned
         self.inset = inset
         self.accent = accent
         self.action = action
@@ -200,23 +201,52 @@ private struct MenuRow: View {
 
     var body: some View {
         Button(action: action) {
-            MenuRowLabel(title, trailing: trailing, inset: inset, accent: accent)
+            MenuRowLabel(title, trailing: trailing, turned: turned, inset: inset, accent: accent)
         }
         .buttonStyle(.plain)
+    }
+}
+
+private struct PauseOptions: View {
+    let hold: (TimeInterval) -> Void
+    let untilTomorrow: () -> Void
+
+    @State private var shown = false
+
+    private var choices: [(title: String, run: () -> Void)] {
+        [
+            ("For 30 minutes", { hold(30 * 60) }),
+            ("For 1 hour", { hold(3600) }),
+            ("Until tomorrow", untilTomorrow)
+        ]
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(choices.enumerated()), id: \.offset) { index, choice in
+                MenuRow(choice.title, inset: true, action: choice.run)
+                    .opacity(shown ? 1 : 0)
+                    .offset(y: shown ? 0 : -9)
+                    .animation(Theme.Motion.settle.delay(Double(index) * 0.055), value: shown)
+            }
+        }
+        .onAppear { shown = true }
     }
 }
 
 private struct MenuRowLabel: View {
     let title: String
     let trailing: String?
+    var turned = false
     let inset: Bool
     var accent = false
 
     @State private var hovering = false
 
-    init(_ title: String, trailing: String?, inset: Bool, accent: Bool = false) {
+    init(_ title: String, trailing: String?, turned: Bool = false, inset: Bool, accent: Bool = false) {
         self.title = title
         self.trailing = trailing
+        self.turned = turned
         self.inset = inset
         self.accent = accent
     }
@@ -244,7 +274,9 @@ private struct MenuRowLabel: View {
             if let trailing {
                 Image(systemName: trailing)
                     .font(.system(size: 9, weight: .semibold))
-                    .foregroundStyle(Theme.Palette.hairline)
+                    .foregroundStyle(turned ? Theme.Palette.inkMuted : Theme.Palette.hairline)
+                    .rotationEffect(.degrees(turned ? -180 : 0))
+                    .animation(Theme.Motion.settle, value: turned)
             }
         }
         .padding(.horizontal, 10)

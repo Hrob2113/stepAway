@@ -219,65 +219,26 @@ struct StretchGlyph: View {
     var tint: Color = Theme.Palette.chalk
     var animated = true
 
+    @State private var birth = Date()
+
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 60.0)) { timeline in
             Canvas { ctx, size in
-                let t = animated ? timeline.date.timeIntervalSinceReferenceDate : 1.6
-                let raw = (sin(t * 0.7 - .pi / 2) + 1) / 2
-                draw(in: ctx, size: size, p: raw * raw * (3 - 2 * raw))
+                let t = animated ? timeline.date.timeIntervalSince(birth) : 0
+                HalftoneFigure
+                    .standing(reach: reach(at: t), sway: animated ? sin(t * 0.62) : 0)
+                    .draw(in: ctx, size: size, tint: tint)
             }
         }
     }
 
-    private func draw(in ctx: GraphicsContext, size: CGSize, p: Double) {
-        let w = size.width, h = size.height
-        let stroke = max(1.8, w * 0.055)
-        let style = StrokeStyle(lineWidth: stroke, lineCap: .round, lineJoin: .round)
-
-        let headR = w * 0.11
-        let headY = lerp(h * 0.34, h * 0.17, p)
-        let neck = CGPoint(x: w * 0.5, y: headY + headR * 1.25)
-        let hip = CGPoint(x: w * 0.5, y: lerp(h * 0.64, h * 0.58, p))
-
-        ctx.stroke(
-            Path(ellipseIn: CGRect(
-                x: w * 0.5 - headR, y: headY - headR, width: headR * 2, height: headR * 2
-            )),
-            with: .color(tint), lineWidth: stroke
-        )
-        ctx.stroke(Path { $0.move(to: neck); $0.addLine(to: hip) }, with: .color(tint), style: style)
-
-        for side in [-1.0, 1.0] {
-            let hand = CGPoint(
-                x: lerp(w * (0.5 + 0.20 * side), w * (0.5 + 0.30 * side), p),
-                y: lerp(h * 0.56, h * 0.13, p)
-            )
-            let elbow = CGPoint(
-                x: lerp(w * (0.5 + 0.19 * side), w * (0.5 + 0.28 * side), p),
-                y: lerp(h * 0.47, h * 0.30, p)
-            )
-            ctx.stroke(Path { path in
-                path.move(to: neck)
-                path.addLine(to: elbow)
-                path.addLine(to: hand)
-            }, with: .color(tint), style: style)
-        }
-
-        for side in [-1.0, 1.0] {
-            let knee = CGPoint(
-                x: lerp(w * (0.5 + 0.22 * side), w * (0.5 + 0.10 * side), p),
-                y: lerp(h * 0.70, h * 0.76, p)
-            )
-            let foot = CGPoint(
-                x: lerp(w * (0.5 + 0.24 * side), w * (0.5 + 0.11 * side), p),
-                y: h * 0.90
-            )
-            ctx.stroke(Path { path in
-                path.move(to: hip)
-                path.addLine(to: knee)
-                path.addLine(to: foot)
-            }, with: .color(tint), style: style)
-        }
+    func reach(at t: TimeInterval) -> Double {
+        guard animated else { return 1 }
+        let u = (t / 9).truncatingRemainder(dividingBy: 1)
+        if u < 0.30 { return smooth(u / 0.30) }
+        if u < 0.66 { return 1 }
+        if u < 0.88 { return 1 - smooth((u - 0.66) / 0.22) }
+        return 0
     }
 }
 
@@ -285,49 +246,25 @@ struct PostureGlyph: View {
     var tint: Color = Theme.Palette.chalk
     var animated = true
 
+    @State private var birth = Date()
+
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 60.0)) { timeline in
             Canvas { ctx, size in
-                let t = animated ? timeline.date.timeIntervalSinceReferenceDate : 1.0
-                let raw = (sin(t * 0.8 - .pi / 2) + 1) / 2
-                draw(in: ctx, size: size, p: raw * raw * (3 - 2 * raw))
+                let t = animated ? timeline.date.timeIntervalSince(birth) : 0
+                HalftoneFigure
+                    .seated(lift: lift(at: t))
+                    .draw(in: ctx, size: size, tint: tint)
             }
         }
     }
 
-    private func draw(in ctx: GraphicsContext, size: CGSize, p: Double) {
-        let w = size.width, h = size.height
-        let stroke = max(1.8, w * 0.065)
-        let style = StrokeStyle(lineWidth: stroke, lineCap: .round, lineJoin: .round)
-
-        let hip = CGPoint(x: w * 0.32, y: h * 0.66)
-        let knee = CGPoint(x: w * 0.74, y: h * 0.66)
-        let foot = CGPoint(x: w * 0.74, y: h * 0.92)
-
-        let headR = w * 0.105
-        let headC = CGPoint(x: lerp(w * 0.58, w * 0.34, p), y: lerp(h * 0.36, h * 0.20, p))
-        let neck = CGPoint(x: headC.x, y: headC.y + headR * 1.35)
-
-        ctx.stroke(Path { path in
-            path.move(to: hip)
-            path.addLine(to: knee)
-            path.addLine(to: foot)
-        }, with: .color(tint), style: style)
-
-        ctx.stroke(Path { path in
-            path.move(to: hip)
-            path.addQuadCurve(
-                to: neck,
-                control: CGPoint(x: lerp(w * 0.58, w * 0.30, p), y: h * 0.50)
-            )
-        }, with: .color(tint), style: style)
-
-        ctx.stroke(
-            Path(ellipseIn: CGRect(
-                x: headC.x - headR, y: headC.y - headR, width: headR * 2, height: headR * 2
-            )),
-            with: .color(tint), lineWidth: stroke
-        )
+    func lift(at t: TimeInterval) -> Double {
+        guard animated else { return 1 }
+        let u = (t / 4.6).truncatingRemainder(dividingBy: 1)
+        if u < 0.34 { return smooth(u / 0.34) }
+        if u < 0.74 { return 1 }
+        return 1 - smooth((u - 0.74) / 0.26)
     }
 }
 

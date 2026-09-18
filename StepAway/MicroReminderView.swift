@@ -45,11 +45,13 @@ struct MicroReminderView: View {
         Group {
             if kind == .posture {
                 PostureGlyph(animated: !reduceMotion)
+                    .frame(width: 80, height: 80)
             } else {
                 EyeGlyph(animated: !reduceMotion)
+                    .frame(width: 54, height: 30)
+                    .frame(width: 80, height: 80)
             }
         }
-        .frame(width: 50, height: 28)
     }
 
     private func enter() {

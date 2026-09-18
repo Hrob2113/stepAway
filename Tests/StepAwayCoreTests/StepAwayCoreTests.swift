@@ -269,3 +269,97 @@ struct Blink {
         }
     }
 }
+
+// MARK: - Figure
+
+@Suite("The halftone figure marks out a body and leaves the rest of the frame alone")
+struct FigureField {
+    private static let poses: [HalftoneFigure] = [
+        .standing(reach: 0, sway: 0),
+        .standing(reach: 1, sway: 0),
+        .standing(reach: 0.5, sway: 1),
+        .seated(lift: 0),
+        .seated(lift: 1)
+    ]
+
+    private func coverage(_ figure: HalftoneFigure) -> Double {
+        let steps = 60
+        var lit = 0
+        for row in 0..<steps {
+            for column in 0..<steps {
+                let point = CGPoint(
+                    x: (Double(column) + 0.5) / Double(steps),
+                    y: (Double(row) + 0.5) / Double(steps)
+                )
+                if figure.density(at: point) > 0 { lit += 1 }
+            }
+        }
+        return Double(lit) / Double(steps * steps)
+    }
+
+    @Test func everyPoseFillsSomeOfTheFrameAndNotAllOfIt() {
+        for figure in Self.poses {
+            let filled = coverage(figure)
+            #expect(filled > 0.08, "a pose left the frame all but empty")
+            #expect(filled < 0.45, "a pose swelled into a block")
+        }
+    }
+
+    @Test func theCornersStayClear() {
+        for figure in Self.poses {
+            for corner in [CGPoint(x: 0.02, y: 0.02), CGPoint(x: 0.98, y: 0.02),
+                           CGPoint(x: 0.02, y: 0.98), CGPoint(x: 0.98, y: 0.98)] {
+                #expect(figure.density(at: corner) == 0)
+            }
+        }
+    }
+
+    @Test func aPoseStaysInsideTheFrameItIsGiven() {
+        for figure in Self.poses {
+            for bone in figure.bones {
+                for end in [bone.a, bone.b] {
+                    #expect(end.x - bone.radius > 0 && end.x + bone.radius < 1)
+                    #expect(end.y - bone.radius > 0 && end.y + bone.radius < 1)
+                }
+            }
+        }
+    }
+}
+
+@Suite("The figure moves the way the break asks the body to")
+struct FigureMotion {
+    @Test func reachingCarriesTheHandsAboveTheHead() {
+        let overhead = CGPoint(x: 0.633, y: 0.056)
+        #expect(HalftoneFigure.standing(reach: 1, sway: 0).density(at: overhead) == 1)
+        #expect(HalftoneFigure.standing(reach: 0, sway: 0).density(at: overhead) == 0)
+    }
+
+    @Test func straighteningBringsTheHeadUpAndBack() {
+        let slouched = CGPoint(x: 0.536, y: 0.288)
+        let upright = CGPoint(x: 0.338, y: 0.196)
+        #expect(HalftoneFigure.seated(lift: 0).density(at: slouched) == 1)
+        #expect(HalftoneFigure.seated(lift: 1).density(at: slouched) == 0)
+        #expect(HalftoneFigure.seated(lift: 1).density(at: upright) == 1)
+        #expect(HalftoneFigure.seated(lift: 0).density(at: upright) == 0)
+    }
+
+    @Test func theStretchRestsAtBothEndsOfItsCycle() {
+        let glyph = StretchGlyph()
+        #expect(glyph.reach(at: 0) == 0)
+        #expect(glyph.reach(at: 4.5) == 1)
+        #expect(glyph.reach(at: 8.9) == 0)
+        #expect(glyph.reach(at: 9) == glyph.reach(at: 0))
+    }
+
+    @Test func theNudgeFinishesStraighteningWhileItIsStillOnScreen() {
+        let glyph = PostureGlyph()
+        #expect(glyph.lift(at: 0) == 0)
+        #expect(glyph.lift(at: 2) == 1)
+        #expect(glyph.lift(at: 3.4) == 1)
+    }
+
+    @Test func aStillFigureHoldsThePoseItIsMeantToShow() {
+        #expect(StretchGlyph(animated: false).reach(at: 3) == 1)
+        #expect(PostureGlyph(animated: false).lift(at: 3) == 1)
+    }
+}

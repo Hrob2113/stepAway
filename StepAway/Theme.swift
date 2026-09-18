@@ -138,9 +138,9 @@ private struct GlassPanel<S: InsettableShape>: ViewModifier {
         content
             .background {
                 ZStack {
-                    DesktopBlur(material: material)
+                    DesktopBlur(material: material, alpha: 0.52)
                     Theme.Palette.surface
-                    AmberBloom(intensity: 0.75, animated: false)
+                    AmberBloom(intensity: 0.55, animated: false)
                     FilmGrain(intensity: 0.09)
                 }
                 .clipShape(shape)

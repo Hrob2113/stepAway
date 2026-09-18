@@ -8,7 +8,7 @@ enforced gently: every 20 minutes, look at something 20 feet away for 20 seconds
 - **Work/break timer** with three rhythms (Balanced, Relaxed, Intensive) or your own intervals
 - **Full-screen break overlay** — frosted glass over your blurred desktop, with an animated
   cue for what to actually do: eyes that follow your pointer and blink on short breaks,
-  a figure standing and stretching on long ones
+  a halftone figure of drifting dots that stands and stretches on long ones
 - **Gentle nudges** between breaks to sit tall and to blink
 - **Knows when you step away** — if you're idle long enough it pauses, and asks whether
   you rested when you come back
@@ -42,7 +42,8 @@ under `StepAway/` is compiled automatically — no project file edits needed.
 | `AppSettings.swift` | `@Observable` settings, presets, persistence |
 | `OverlayPresenter.swift` | All window management for overlays |
 | `Theme.swift` | Palette, motion, the shared frosted-glass treatment |
-| `Glyphs.swift` | Animated eye, stretch and posture vectors |
+| `Glyphs.swift` | Animated eye, stretch and posture glyphs |
+| `HalftoneFigure.swift` | The dot-screen body the stretch and posture glyphs are drawn from |
 | `Hourglass.swift` | The draining hourglass |
 
 Timers are **deadline-based** rather than accumulated, so they survive system sleep without

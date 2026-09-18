@@ -27,12 +27,12 @@ struct BreakOverlayView: View {
 
     private var backdrop: some View {
         ZStack {
-            DesktopBlur(material: .hudWindow)
+            DesktopBlur(material: .hudWindow, alpha: 0.58)
 
-            AmberBloom(animated: !reduceMotion)
+            AmberBloom(intensity: 0.8, animated: !reduceMotion)
 
             RadialGradient(
-                colors: [Color.black.opacity(0.30), .clear],
+                colors: [Color.black.opacity(0.14), .clear],
                 center: .center, startRadius: 0, endRadius: 660
             )
 
@@ -119,7 +119,7 @@ struct BreakOverlayView: View {
                     .frame(width: ringSize * 0.70, height: ringSize * 0.32)
             } else {
                 StretchGlyph(animated: !reduceMotion)
-                    .frame(width: ringSize * 0.44, height: ringSize * 0.54)
+                    .frame(width: ringSize * 0.78, height: ringSize * 0.78)
             }
         }
         .frame(width: ringSize, height: ringSize)

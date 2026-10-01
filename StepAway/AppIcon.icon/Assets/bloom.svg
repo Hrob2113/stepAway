@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+<defs><radialGradient id="l0" gradientUnits="userSpaceOnUse" cx="266.24" cy="20.48" r="634.88">
+<stop offset="0" stop-color="#FFDAA2" stop-opacity="0.435"/>
+<stop offset="0.26" stop-color="#E8601F" stop-opacity="0.493"/>
+<stop offset="0.56" stop-color="#C41208" stop-opacity="0.232"/>
+<stop offset="1" stop-color="#C41208" stop-opacity="0"/>
+</radialGradient><radialGradient id="l1" gradientUnits="userSpaceOnUse" cx="839.68" cy="901.12" r="430.08">
+<stop offset="0" stop-color="#E8601F" stop-opacity="0.270"/>
+<stop offset="0.26" stop-color="#C41208" stop-opacity="0.306"/>
+<stop offset="0.56" stop-color="#C41208" stop-opacity="0.144"/>
+<stop offset="1" stop-color="#C41208" stop-opacity="0"/>
+</radialGradient><radialGradient id="l2" gradientUnits="userSpaceOnUse" cx="61.44" cy="737.28" r="491.52">
+<stop offset="0" stop-color="#003C52" stop-opacity="0.239"/>
+<stop offset="0.26" stop-color="#003C52" stop-opacity="0.271"/>
+<stop offset="0.56" stop-color="#003C52" stop-opacity="0.128"/>
+<stop offset="1" stop-color="#003C52" stop-opacity="0"/>
+</radialGradient></defs><rect width="1024" height="1024" fill="url(#l0)"/><rect width="1024" height="1024" fill="url(#l1)"/><rect width="1024" height="1024" fill="url(#l2)"/>
+</svg>

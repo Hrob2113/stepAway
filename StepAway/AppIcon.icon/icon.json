@@ -1,0 +1,59 @@
+{
+  "fill" : {
+    "solid" : "srgb:0.05000,0.04000,0.04000,1.00000"
+  },
+  "groups" : [
+    {
+      "layers" : [
+        {
+          "image-name" : "halo.svg",
+          "name" : "halo"
+        },
+        {
+          "image-name" : "iris.svg",
+          "name" : "iris"
+        },
+        {
+          "image-name" : "sclera.svg",
+          "name" : "sclera"
+        }
+      ],
+      "name" : "Eye",
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : false,
+        "value" : 0.5
+      }
+    },
+    {
+      "layers" : [
+        {
+          "blend-mode" : "overlay",
+          "glass" : false,
+          "image-name" : "grain.png",
+          "name" : "grain",
+          "opacity" : 0.09
+        },
+        {
+          "glass" : false,
+          "image-name" : "bloom.svg",
+          "name" : "bloom"
+        }
+      ],
+      "name" : "Light",
+      "shadow" : {
+        "kind" : "none",
+        "opacity" : 0.5
+      },
+      "specular" : false
+    }
+  ],
+  "supported-platforms" : {
+    "squares" : [
+      "macOS"
+    ]
+  }
+}

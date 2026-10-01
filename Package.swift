@@ -8,7 +8,7 @@ let package = Package(
         .target(
             name: "StepAwayCore",
             path: "StepAway",
-            exclude: ["StepAwayApp.swift", "Assets.xcassets", "Fonts"],
+            exclude: ["StepAwayApp.swift", "AppIcon.icon", "Assets.xcassets", "Fonts"],
             swiftSettings: [.swiftLanguageMode(.v6), .defaultIsolation(MainActor.self)]
         ),
         .testTarget(
